@@ -2,6 +2,18 @@
 Started: Sun Mar  1 21:08:16 CET 2026
 ---
 
+## 2026-03-01 - US-005
+- Implemented VTT output format for chapter navigation
+- Files changed:
+  - `audiochap/format.py` (added `_vtt_time` helper and `format_vtt(chapters, audio_duration=None)`)
+  - `audiochap/cli.py` (imported `format_vtt`, added `elif args.format == "vtt"` dispatch)
+- **Learnings for future sessions:**
+  - `format_vtt` accepts optional `audio_duration` (int seconds); if None, estimates last chapter end from average gap
+  - VTT timestamp format: HH:MM:SS.000 (milliseconds always .000 since timestamps are int seconds)
+  - WebVTT chapter format: header "WEBVTT", blank line, then cues (no cue IDs needed for chapter nav)
+  - cli.py still has the `else` fallback for unimplemented formats — US-006 (srt) adds `elif args.format == "srt"`
+---
+
 ## 2026-03-01 - US-004
 - Implemented JSON output format
 - Files changed:
