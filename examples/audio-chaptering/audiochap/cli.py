@@ -1,11 +1,11 @@
 """audiochap CLI entry point."""
 
 import argparse
-import json
 import os
 import sys
 from pathlib import Path
 
+from audiochap.format import format_json
 from audiochap.generate import generate_chapters
 from audiochap.upload import upload_audio
 
@@ -92,8 +92,12 @@ def main(argv=None):
     file_uri = upload_audio(args.input, api_key)
     chapters = generate_chapters(file_uri, api_key, args.duration)
 
-    # Output formatting handled in US-004/005/006; emit raw JSON for now
-    output = json.dumps(chapters)
+    if args.format == "json":
+        output = format_json(chapters)
+    else:
+        print(f"Error: Format '{args.format}' is not yet implemented.", file=sys.stderr)
+        sys.exit(1)
+
     if args.output:
         with open(args.output, "w") as f:
             f.write(output)
