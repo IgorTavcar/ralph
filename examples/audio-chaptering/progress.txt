@@ -2,6 +2,19 @@
 Started: Sun Mar  1 21:08:16 CET 2026
 ---
 
+## 2026-03-01 - US-003
+- Implemented Gemini API chapter generation
+- Files changed:
+  - `audiochap/generate.py` (new, generate_chapters + _parse_chapters)
+  - `audiochap/cli.py` (updated main() to call upload_audio + generate_chapters, emit JSON)
+- **Learnings for future sessions:**
+  - `types.Part(file_data=types.FileData(file_uri=...))` is valid in google-genai; no mime_type required for generate_content since it's stored server-side from upload
+  - Model used: `gemini-2.0-flash` (current recommended model)
+  - Prompt asks for raw JSON array; _parse_chapters strips markdown code fences as fallback
+  - cli.py now outputs `json.dumps(chapters)` as placeholder; US-004/005/006 will replace with format-aware output
+  - `chapters` is `list[dict]` with keys `timestamp` (int seconds) and `title` (str)
+---
+
 ## Codebase Patterns
 - Python project uses `pyproject.toml` with setuptools backend
 - CLI entry point: `audiochap.cli:main` registered as `audiochap` script

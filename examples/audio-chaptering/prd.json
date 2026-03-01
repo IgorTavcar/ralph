@@ -49,7 +49,7 @@
         "Fails fast on API errors (rate limit, network, malformed response)"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
