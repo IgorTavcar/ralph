@@ -2,7 +2,7 @@
 
 ## Overview
 
-Ralph is an autonomous AI agent loop that runs AI coding tools (Amp, Claude Code, or Codex) repeatedly until all PRD items are complete. Each iteration is a fresh instance with clean context.
+Ralph is an autonomous AI agent loop that runs AI coding tools (Amp, Claude Code, or Codex) repeatedly until all PRD items are complete. Each session is a fresh instance with clean context—**sessions do not share memory with each other**.
 
 ## Commands
 
@@ -14,13 +14,13 @@ cd flowchart && npm run dev
 cd flowchart && npm run build
 
 # Run Ralph with Amp (default)
-./ralph.sh [max_iterations]
+./ralph.sh [max_sessions]
 
 # Run Ralph with Claude Code
-./ralph.sh --tool claude [max_iterations]
+./ralph.sh --tool claude [max_sessions]
 
 # Run Ralph with Codex
-./ralph.sh --tool codex [max_iterations]
+./ralph.sh --tool codex [max_sessions]
 ```
 
 ## Key Files
@@ -44,8 +44,8 @@ npm run dev
 
 ## Patterns
 
-- Each iteration spawns a fresh AI instance (Amp, Claude Code, or Codex) with clean context
-- Memory persists via git history, `progress.txt`, and `prd.json`
+- Each session spawns a fresh AI instance (Amp, Claude Code, or Codex) with clean context
+- Sessions do NOT share memory—all persistent knowledge must be written to files (git history, `progress.txt`, `prd.json`, and `AGENTS.md`)
 - Stories should be small enough to complete in one context window
 - Completion should be checked from `prd.json` (`userStories[].passes`) rather than relying only on model output text
-- Always update AGENTS.md with discovered patterns for future iterations
+- Always update AGENTS.md with discovered patterns so future sessions can benefit (they cannot read your memory, only files)
