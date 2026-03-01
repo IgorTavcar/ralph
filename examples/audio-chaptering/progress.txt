@@ -2,6 +2,18 @@
 Started: Sun Mar  1 21:08:16 CET 2026
 ---
 
+## 2026-03-01 - US-006
+- Implemented SRT output format
+- Files changed:
+  - `audiochap/format.py` (added `_srt_time` helper and `format_srt(chapters, audio_duration=None)`)
+  - `audiochap/cli.py` (imported `format_srt`, added `elif args.format == "srt"` dispatch)
+- **Learnings for future sessions:**
+  - SRT timestamp format: HH:MM:SS,mmm (comma separator, not period like VTT)
+  - SRT entries are sequential numbered (1, 2, 3...) unlike VTT which has no IDs for chapter nav
+  - `format_srt` shares same end-time estimation logic as `format_vtt` (next chapter start, or audio_duration, or avg gap)
+  - All user stories now complete; `prd.json` has all `passes: true`
+---
+
 ## 2026-03-01 - US-005
 - Implemented VTT output format for chapter navigation
 - Files changed:
