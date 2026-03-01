@@ -9,6 +9,18 @@ Started: Sun Mar  1 21:08:16 CET 2026
 - All errors go to stderr with exit code 1; argparse default exit code 2 is overridden via `_Parser` subclass
 - `validate_args()` handles all post-parse validation and exits directly on failure
 
+## 2026-03-01 - US-002
+- Implemented audio upload to Gemini File API
+- Files changed:
+  - `audiochap/upload.py` (new, upload_audio function)
+- **Learnings for future sessions:**
+  - `google-genai` client: `genai.Client(api_key=...)`, then `client.files.upload(file=path, config={"mime_type": ...})`
+  - Upload method parameter is `file=` (not `path=`) — confirmed from inspect.signature
+  - Returns a `google.genai.types.File` object; `.uri` gives the file URI
+  - MIME type map: .mp3→audio/mpeg, .wav→audio/wav, .m4a→audio/mp4, .ogg→audio/ogg, .flac→audio/flac
+  - `upload_audio()` raises SystemExit on failure; caller does not need to wrap
+---
+
 ## 2026-03-01 - US-001
 - Implemented CLI argument parsing and validation
 - Files changed:

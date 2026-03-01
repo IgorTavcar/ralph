@@ -33,7 +33,7 @@
         "Handles files up to 100MB (30-60 min audio)"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Use google-genai Python package"
     },
     {
