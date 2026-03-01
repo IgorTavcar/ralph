@@ -1,0 +1,100 @@
+{
+  "project": "AudioChaptering",
+  "branchName": "ralph/audio-chaptering",
+  "description": "CLI tool that generates chapter markers for audio files using Gemini multimodal API",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "CLI argument parsing and validation",
+      "description": "As a user, I want to run audiochap <input> [options] and get clear errors if arguments are invalid.",
+      "acceptanceCriteria": [
+        "CLI accepts: audiochap <input> [--format json|vtt|srt] [--duration N] [--output FILE]",
+        "<input> is required, must be a valid audio file path",
+        "--format defaults to json",
+        "--duration sets target chapter length in minutes (default: 10)",
+        "--output defaults to stdout",
+        "Invalid arguments produce clear stderr messages and exit code 1",
+        "--help shows usage",
+        "Validates GEMINI_API_KEY env var exists at startup, fails immediately if missing"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Upload audio to Gemini via File API",
+      "description": "As a developer, I need to upload audio files to Gemini's File API (always, regardless of size) and get a file URI for use in generation requests.",
+      "acceptanceCriteria": [
+        "Always uses Gemini File API for uploads (no inline audio)",
+        "Supports common audio formats (mp3, wav, m4a, ogg, flac)",
+        "Returns a file URI usable in subsequent Gemini API calls",
+        "Fails fast with clear error on upload failure (network, auth, invalid file)",
+        "Handles files up to 100MB (30-60 min audio)"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Use google-genai Python package"
+    },
+    {
+      "id": "US-003",
+      "title": "Generate chapters via single Gemini API call",
+      "description": "As a user, I want the tool to send my audio to Gemini and get chapter markers back in one step.",
+      "acceptanceCriteria": [
+        "Sends uploaded file URI to Gemini multimodal model",
+        "Prompt instructs Gemini to generate chapters with timestamps and factual summary titles",
+        "Includes --duration value in prompt to control chapter granularity",
+        "Forces chapter breaks at target duration boundaries (hard time boundaries)",
+        "Parses Gemini response into structured chapter data (timestamp + title)",
+        "Fails fast on API errors (rate limit, network, malformed response)"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "JSON output format",
+      "description": "As a user, I want chapter data output as structured JSON.",
+      "acceptanceCriteria": [
+        "Default output format",
+        "Each chapter has: timestamp (seconds) and title (factual summary)",
+        "Output is valid JSON array",
+        "Writes to stdout by default, or to --output file path",
+        "Silent operation - no progress/status to stdout (errors to stderr only)"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "VTT output format (chapter navigation cues)",
+      "description": "As a user, I want chapter data as a WebVTT chapter file for browser navigation.",
+      "acceptanceCriteria": [
+        "Activated via --format vtt",
+        "Outputs valid WebVTT with chapter cues (not subtitle cues)",
+        "Each cue has start time, end time (= next chapter start), and chapter title",
+        "Last chapter ends at audio duration or a reasonable estimate",
+        "Conforms to WebVTT spec for chapter navigation"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "SRT output format",
+      "description": "As a user, I want chapter data as an SRT file.",
+      "acceptanceCriteria": [
+        "Activated via --format srt",
+        "Outputs valid SRT with sequential numbered entries",
+        "Each entry has start timestamp, end timestamp, and chapter title text",
+        "Timestamps in HH:MM:SS,mmm format per SRT spec"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

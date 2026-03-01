@@ -1,0 +1,23 @@
+# Ralph Progress Log
+Started: Sun Mar  1 21:08:16 CET 2026
+---
+
+## Codebase Patterns
+- Python project uses `pyproject.toml` with setuptools backend
+- CLI entry point: `audiochap.cli:main` registered as `audiochap` script
+- Supported audio formats: .mp3, .wav, .m4a, .ogg, .flac (defined in `SUPPORTED_AUDIO_EXTENSIONS`)
+- All errors go to stderr with exit code 1; argparse default exit code 2 is overridden via `_Parser` subclass
+- `validate_args()` handles all post-parse validation and exits directly on failure
+
+## 2026-03-01 - US-001
+- Implemented CLI argument parsing and validation
+- Files changed:
+  - `audiochap/__init__.py` (new, empty package init)
+  - `audiochap/cli.py` (new, CLI with argparse)
+  - `pyproject.toml` (new, packaging config)
+- **Learnings for future sessions:**
+  - argparse exit code 2 for arg errors — overridden with `_Parser` subclass to use exit code 1 per spec
+  - `validate_args()` is called after parse_args; checks GEMINI_API_KEY, file existence, extension, duration > 0
+  - `main()` currently exits 1 with "not yet implemented" — US-002/003/004 will replace this
+  - Project root for the example is `examples/audio-chaptering/`; package is `audiochap/`
+---
