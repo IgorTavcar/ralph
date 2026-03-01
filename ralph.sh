@@ -3,6 +3,7 @@
 # Usage: ./ralph.sh [--tool amp|claude|codex] [--retries N] [--hang-timeout N] [max_iterations]
 
 set -e
+set -o pipefail
 
 # Parse arguments
 TOOL="amp"  # Default to amp for backwards compatibility
@@ -51,11 +52,12 @@ if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "codex" ]]; then
   echo "Error: Invalid tool '$TOOL'. Must be 'amp', 'claude', or 'codex'."
   exit 1
 fi
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || { echo "Error: Cannot determine script directory"; exit 1; }
 PRD_FILE="$SCRIPT_DIR/prd.json"
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+HINTS_FILE="$SCRIPT_DIR/.ralph-hints.txt"
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
@@ -66,13 +68,16 @@ if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
     # Archive the previous run
     DATE=$(date +%Y-%m-%d)
     # Strip "ralph/" prefix from branch name for folder
-    FOLDER_NAME=$(echo "$LAST_BRANCH" | sed 's|^ralph/||')
+    FOLDER_NAME="${LAST_BRANCH#ralph/}"
     ARCHIVE_FOLDER="$ARCHIVE_DIR/$DATE-$FOLDER_NAME"
-    
+
     echo "Archiving previous run: $LAST_BRANCH"
-    mkdir -p "$ARCHIVE_FOLDER"
-    [ -f "$PRD_FILE" ] && cp "$PRD_FILE" "$ARCHIVE_FOLDER/"
-    [ -f "$PROGRESS_FILE" ] && cp "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
+    if ! mkdir -p "$ARCHIVE_FOLDER"; then
+      echo "Error: Failed to create archive folder: $ARCHIVE_FOLDER"
+      exit 1
+    fi
+    [ -f "$PRD_FILE" ] && { cp "$PRD_FILE" "$ARCHIVE_FOLDER/" || echo "Warning: Failed to archive prd.json"; }
+    [ -f "$PROGRESS_FILE" ] && { cp "$PROGRESS_FILE" "$ARCHIVE_FOLDER/" || echo "Warning: Failed to archive progress.txt"; }
     echo "   Archived to: $ARCHIVE_FOLDER"
     
     # Reset progress file for new run
@@ -99,6 +104,27 @@ fi
 
 echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS - Max retries: $MAX_RETRIES - Hang timeout: $HANG_TIMEOUT"
 
+# Validate required tools are available
+if ! command -v jq &>/dev/null; then
+  echo "Error: jq is required but not installed."
+  exit 1
+fi
+
+if [[ "$TOOL" == "amp" ]] && ! command -v amp &>/dev/null; then
+  echo "Error: amp is required but not installed."
+  exit 1
+fi
+
+if [[ "$TOOL" == "claude" ]] && ! command -v claude &>/dev/null; then
+  echo "Error: claude is required but not installed."
+  exit 1
+fi
+
+if [[ "$TOOL" == "codex" ]] && ! command -v codex &>/dev/null; then
+  echo "Error: codex is required but not installed."
+  exit 1
+fi
+
 # Retry configuration
 INITIAL_RETRY_DELAY=5
 
@@ -119,8 +145,13 @@ is_retryable_error() {
 # This fixes the issue where Claude completes work but hangs during exit/cleanup
 run_claude_with_stream() {
   local prompt_file="$1"
+  local hints="$2"
   local prompt_content
-  prompt_content=$(<"$prompt_file")
+  if [ -n "$hints" ]; then
+    prompt_content=$(printf '%s\n\n---\n\n%s' "$hints" "$(<"$prompt_file")")
+  else
+    prompt_content=$(<"$prompt_file")
+  fi
 
   # Clear the output file
   : > "$STREAM_OUTPUT"
@@ -177,7 +208,9 @@ run_claude_with_stream() {
 }
 
 # Function to run the tool with retries
+# Usage: run_with_retry [hints]
 run_with_retry() {
+  local hints="$1"
   local attempt=1
   local delay=$INITIAL_RETRY_DELAY
   local output=""
@@ -192,13 +225,21 @@ run_with_retry() {
 
     # Run the selected tool
     if [[ "$TOOL" == "amp" ]]; then
-      output=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || exit_code=$?
+      if [ -n "$hints" ]; then
+        output=$( (printf '%s\n\n' "$hints"; cat "$SCRIPT_DIR/prompt.md") | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || exit_code=$?
+      else
+        output=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || exit_code=$?
+      fi
     elif [[ "$TOOL" == "claude" ]]; then
       # Use stream-json approach for Claude to avoid hang issues
-      output=$(run_claude_with_stream "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || exit_code=$?
+      output=$(run_claude_with_stream "$SCRIPT_DIR/CLAUDE.md" "$hints" 2>&1 | tee /dev/stderr) || exit_code=$?
     else
       # Codex
-      PROMPT_CONTENT="$(cat "$SCRIPT_DIR/prompt.md")"
+      if [ -n "$hints" ]; then
+        PROMPT_CONTENT=$(printf '%s\n\n%s' "$hints" "$(cat "$SCRIPT_DIR/prompt.md")")
+      else
+        PROMPT_CONTENT="$(cat "$SCRIPT_DIR/prompt.md")"
+      fi
       output=$(codex exec --dangerously-bypass-approvals-and-sandbox "$PROMPT_CONTENT" 2>&1 | tee /dev/stderr) || exit_code=$?
     fi
 
@@ -238,6 +279,10 @@ check_prd_completion() {
   [ -z "$remaining_stories" ]
 }
 
+# Track consecutive errors
+ERROR_COUNT=0
+MAX_CONSECUTIVE_ERRORS=3
+
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
   echo "==============================================================="
@@ -257,17 +302,42 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   fi
   echo "==============================================================="
 
+  # Check for user hints file and prepend to prompt if present
+  HINTS=""
+  if [ -f "$HINTS_FILE" ]; then
+    # Atomic read-and-delete: rename first, then read
+    HINTS_CONSUMED="${HINTS_FILE}.consumed"
+    if mv "$HINTS_FILE" "$HINTS_CONSUMED" 2>/dev/null; then
+      HINTS=$(cat "$HINTS_CONSUMED")
+      rm -f "$HINTS_CONSUMED"
+      echo "📌 Applying user hints to this iteration"
+    fi
+  fi
+
   # Run the tool with automatic retry on transient errors
-  OUTPUT=$(run_with_retry) || true
+  OUTPUT=$(run_with_retry "$HINTS") || true
+
+  # Track consecutive errors
+  if [ -z "$OUTPUT" ] || [ "${#OUTPUT}" -lt 50 ]; then
+    ERROR_COUNT=$((ERROR_COUNT + 1))
+    echo "⚠️  Warning: $TOOL returned minimal output (error $ERROR_COUNT of $MAX_CONSECUTIVE_ERRORS)"
+
+    if [ "$ERROR_COUNT" -ge "$MAX_CONSECUTIVE_ERRORS" ]; then
+      echo "❌ Error: $MAX_CONSECUTIVE_ERRORS consecutive minimal outputs. Stopping."
+      exit 1
+    fi
+  else
+    ERROR_COUNT=0
+  fi
 
   # Check completion based on PRD stories.
   if check_prd_completion; then
     echo ""
-    echo "Ralph completed all tasks!"
+    echo "✅ Ralph completed all tasks!"
     echo "Completed at iteration $i of $MAX_ITERATIONS"
     exit 0
   fi
-  
+
   echo "Iteration $i complete. Continuing..."
   sleep 2
 done
