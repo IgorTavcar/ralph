@@ -64,7 +64,7 @@
         "Silent operation - no progress/status to stdout (errors to stderr only)"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

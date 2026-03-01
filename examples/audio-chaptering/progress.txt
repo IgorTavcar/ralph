@@ -2,6 +2,18 @@
 Started: Sun Mar  1 21:08:16 CET 2026
 ---
 
+## 2026-03-01 - US-004
+- Implemented JSON output format
+- Files changed:
+  - `audiochap/format.py` (new, `format_json(chapters)` function)
+  - `audiochap/cli.py` (updated to import `format_json`, dispatch on `args.format`, removed placeholder comment)
+- **Learnings for future sessions:**
+  - `format.py` is the central module for all output formatters; US-005 adds `format_vtt`, US-006 adds `format_srt`
+  - `format_json` uses `json.dumps(chapters, indent=2)` for human-readable output
+  - cli.py dispatches on `args.format` with explicit error for unimplemented formats
+  - No test framework exists in this project; no lint/typecheck configured in pyproject.toml
+---
+
 ## 2026-03-01 - US-003
 - Implemented Gemini API chapter generation
 - Files changed:
