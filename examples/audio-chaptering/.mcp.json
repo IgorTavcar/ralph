@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ask-user-questions": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["-y", "auq-mcp-server", "server"]
+    }
+  }
+}
