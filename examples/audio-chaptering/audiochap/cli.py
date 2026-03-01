@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 
-from audiochap.format import format_json, format_vtt
+from audiochap.format import format_json, format_srt, format_vtt
 from audiochap.generate import generate_chapters
 from audiochap.upload import upload_audio
 
@@ -96,6 +96,8 @@ def main(argv=None):
         output = format_json(chapters)
     elif args.format == "vtt":
         output = format_vtt(chapters)
+    elif args.format == "srt":
+        output = format_srt(chapters)
     else:
         print(f"Error: Format '{args.format}' is not yet implemented.", file=sys.stderr)
         sys.exit(1)
