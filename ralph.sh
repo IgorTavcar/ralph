@@ -241,7 +241,20 @@ check_prd_completion() {
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
   echo "==============================================================="
+
+  # Extract current user story (highest priority with passes: false)
+  STORY_TITLE=""
+  STORY_DESC=""
+  if [ -f "$PRD_FILE" ]; then
+    STORY_TITLE=$(jq -r '[.userStories[] | select(.passes == false)] | sort_by(.priority) | .[0].title // empty' "$PRD_FILE" 2>/dev/null || echo "")
+    STORY_DESC=$(jq -r '[.userStories[] | select(.passes == false)] | sort_by(.priority) | .[0].description // empty' "$PRD_FILE" 2>/dev/null || echo "")
+  fi
+
   echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
+  if [ -n "$STORY_TITLE" ]; then
+    echo "  Story: $STORY_TITLE"
+    [ -n "$STORY_DESC" ] && echo "  $STORY_DESC"
+  fi
   echo "==============================================================="
 
   # Run the tool with automatic retry on transient errors
