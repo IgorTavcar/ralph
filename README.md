@@ -124,7 +124,7 @@ This creates `prd.json` with user stories structured for autonomous execution.
 Default is 10 iterations. Use `--tool amp`, `--tool claude`, or `--tool codex` to select your AI coding tool.
 
 Ralph will:
-1. Create a feature branch (from PRD `branchName`)
+1. Create a feature branch (from PRD `branchName`, based on `baseBranch` if specified, otherwise from current HEAD)
 2. Pick the highest priority story where `passes: false`
 3. Implement that single story
 4. Run quality checks (typecheck, tests)
@@ -140,7 +140,7 @@ Ralph will:
 | `ralph.sh` | The bash loop that spawns fresh AI instances (supports `--tool amp`, `--tool claude`, or `--tool codex`) |
 | `prompt.md` | Prompt template for Amp or Codex |
 | `CLAUDE.md` | Prompt template for Claude Code |
-| `prd.json` | User stories with `passes` status (the task list) |
+| `prd.json` | User stories with `passes` status (the task list). Supports optional `baseBranch` field to specify which branch to create feature branches from (defaults to current HEAD) |
 | `prd.json.example` | Example PRD format for reference |
 | `progress.txt` | Append-only learnings for future iterations |
 | `skills/prd/` | Skill for generating PRDs (works with Amp and Claude Code) |
