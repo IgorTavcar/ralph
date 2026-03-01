@@ -1,9 +1,13 @@
 """audiochap CLI entry point."""
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
+
+from audiochap.generate import generate_chapters
+from audiochap.upload import upload_audio
 
 SUPPORTED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".flac"}
 
@@ -83,9 +87,18 @@ def validate_args(args):
 def main(argv=None):
     args = parse_args(argv)
     validate_args(args)
-    # Placeholder: actual chapter generation will be implemented in later stories
-    print("Chapter generation not yet implemented.", file=sys.stderr)
-    sys.exit(1)
+
+    api_key = os.environ["GEMINI_API_KEY"]
+    file_uri = upload_audio(args.input, api_key)
+    chapters = generate_chapters(file_uri, api_key, args.duration)
+
+    # Output formatting handled in US-004/005/006; emit raw JSON for now
+    output = json.dumps(chapters)
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(output)
+    else:
+        print(output)
 
 
 if __name__ == "__main__":
