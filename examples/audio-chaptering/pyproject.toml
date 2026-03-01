@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "audiochap"
+version = "0.1.0"
+description = "CLI tool that generates chapter markers for audio files using Gemini multimodal API"
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai>=0.8.0",
+]
+
+[project.scripts]
+audiochap = "audiochap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["audiochap*"]
